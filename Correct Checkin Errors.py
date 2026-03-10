@@ -6,16 +6,13 @@ Script identifies instances in which a checkin failed, resulting in a Sierra ite
 Once identified, script uses the Sierra API to check the item in again and clear the error
 """
 
-# run in simian
-
 from sierra_ils_utils import SierraAPI
 import json
 import configparser
 import psycopg2
 import os
-from oauth2client.service_account import ServiceAccountCredentials
-from googleapiclient.discovery import build
-import gspread
+import datetime
+import pygsheets
 
 
 # function initializes a session using the Sierra API
@@ -79,26 +76,34 @@ def checkin_item(barcode, username, statgroup, sierra_api):
 
 # log items that were corrected to an existing Google Sheet
 def appendToSheet(spreadSheetId, data):
-    scopes = [
-        "https://spreadsheets.google.com/feeds",
-        "https://www.googleapis.com/auth/drive",
-    ]
-    creds = ServiceAccountCredentials.from_json_keyfile_name(
-        "C:\\Scripts\\Creds\\GSheet updater creds.json", scopes
-    )
-    service = build("sheets", "v4", credentials=creds)
-    sheet = service.spreadsheets()
-    request = (
-        service.spreadsheets()
-        .values()
-        .append(
-            spreadsheetId=spreadSheetId,
-            range="A1:Z1",
-            valueInputOption="USER_ENTERED",
-            body={"values": data},
-        )
-    )
-    result = request.execute()
+    #use conditional logic to prevent errors from function being passed an empty dataset
+    if not data:
+        gc = pygsheets.authorize(service_file="GSheet updater creds.json")
+
+        sh = gc.open_by_key(spreadSheetId)
+        wks = sh.sheet1  # or sh.worksheet_by_title("My Sheet")
+
+        # Find the first empty row and insert data there
+        first_empty_row = len(wks.get_all_values(include_tailing_empty_rows=False)) + 1
+        rows_needed = first_empty_row + len(data) - 1
+
+        # Expand the sheet if the data would exceed the current grid size
+        if rows_needed > wks.rows:
+            wks.add_rows(rows_needed - wks.rows)
+        wks.update_values(f"A{first_empty_row}", data)
+
+
+# converts psycopg2 fetchall() output to matrix required by pygsheets
+def parse_pg_data(rows):
+
+    def convert(val):
+        if val is None:
+            return ""
+        if isinstance(val, (datetime.date, datetime.datetime)):
+            return val.isoformat()  # e.g. "2026-03-04"
+        return val  # int, float, str pass through as-is
+
+    return [list(convert(val) for val in row) for row in rows]
 
 
 def main():
@@ -147,7 +152,8 @@ def main():
     # log query results to preexisting Google sheet
     config = configparser.ConfigParser()
     config.read("config.ini")
-    appendToSheet(config["gsheet"]["correct_checkins"], item_errors)
+    item_errors_parsed = parse_pg_data(item_errors)
+    appendToSheet(config["gsheet"]["correct_checkins"], item_errors_parsed)
 
     # initialize Sierra API
     sierra_api = init_api()
