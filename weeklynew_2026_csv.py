@@ -72,8 +72,8 @@ def send_email(attachment):
     The weekly new report has been attached. Please take a look and let the Technology Librarian know if there are any questions about it."""
 
     # Enter your own email information
-    emailfrom = "jgoldstein@minlib.net"
-    emailto = ["jgoldstein@minlib.net"]
+    emailfrom = ""
+    emailto = [""]
 
     # Creating the email message
     msg = MIMEMultipart()

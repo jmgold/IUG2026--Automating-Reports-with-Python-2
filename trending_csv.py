@@ -72,7 +72,7 @@ def send_email(attachment, subject, message, recipient):
     emailport = "25"
 
     # Enter your own email information
-    emailfrom = "jgoldstein@minlib.net"
+    emailfrom = ""
 
     # Creating the email message
     msg = MIMEMultipart()
@@ -163,7 +163,7 @@ def main():
     The weekly trending titles report has been attached. 
     Please take a look and let the Technology Librarian know if there are any questions about it.
     """
-    emailto = ["jgoldstein@minlib.net"]
+    emailto = [""]
     
     query_results, headers = run_query(query)
     local_file = write_csv(query_results, headers)
