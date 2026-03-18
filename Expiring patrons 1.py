@@ -40,7 +40,7 @@ def run_query(query):
 
 
 # function constructs and sends outgoing email given a subject, a recipient and body text in both txt and html forms
-def send_email(subject, message_text, message_html, recipient):
+def send_email(subject, message_text, recipient):
     # read config file with Sierra login credentials
     config = configparser.ConfigParser()
     config.read("config.ini")
@@ -55,8 +55,7 @@ def send_email(subject, message_text, message_html, recipient):
 
     # Creating the email message with html and plaintxt options
     msg = MIMEMultipart("alternative")
-    part1 = MIMEText(message_text, "plain")
-    part2 = MIMEText(message_html, "html")
+    part = MIMEText(message_text, "plain")
     msg["From"] = emailfrom
     if type(recipient) is list:
         msg["To"] = ", ".join(recipient)
@@ -64,8 +63,7 @@ def send_email(subject, message_text, message_html, recipient):
         msg["To"] = recipient
     msg["Date"] = formatdate(localtime=True)
     msg["Subject"] = subject
-    msg.attach(part1)
-    msg.attach(part2)
+    msg.attach(part)
 
     # Sending the email message
     smtp = smtplib.SMTP(emailhost, emailport)
@@ -113,29 +111,7 @@ This is a reminder that your library card will expire on {}.  Renew your card on
             str(row[0]), str(row[1]), str(row[3])
         )
 
-        email_html = """
-    <html>
-    <head></head>
-    <body style="background-color:#FFFFFF;">
-    <table style="width: 70%; margin-left: 15%; margin-right: 15%; border: 0; cellspacing: 0; cellpadding: 0; background-color: #FFFFFF;">
-    <tr>
-    <img src="https://www.minlib.net/sites/default/files/glazed_builder_images/clock.png" style="height: 135px; width: 135px; display: block; margin-left: auto; margin-right: auto;" alt="placeholder">
-    <font face="Scala Sans, Calibri, Arial"; size="3">
-    <p>Dear {} {},<br><br>
-    
-    This is a reminder that your library card will expire on {}.<br>
-    <a href="https://www.minlib.net/erenew">Renew your card online </a> to continue your access to over 5 million items.<br><br>
-    ***This is an automated email.  Do not reply.***<br><br>
-    </font>
-    </p>
-    <img src="https://www.minlib.net/sites/default/files/glazed_builder_images/logo-print-small.jpg" style="height: 32px; width: 188px; display: block; margin-left: auto; margin-right: auto;" alt="Minuteman logo">
-    </tr>
-    </table>
-    </body>  
-    </html>""".format(
-            str(row[0]), str(row[1]), str(row[3])
-        )
-        send_email(emailsubject, email_text, email_html, emailto)
+        send_email(emailsubject, email_text, emailto)
 
 
 main()
